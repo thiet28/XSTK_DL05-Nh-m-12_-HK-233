@@ -1,0 +1,223 @@
+---
+title: "Code"
+author: "Tran Dang Bao"
+date: "2024-04-09"
+output: html_document
+---
+```{r}
+my_data <- read.csv("D:/XSTK/BTL XSTK/my_data.csv")
+```
+
+```{r}
+# Lưu kết quả của hàm table () vào biến và in kết quả đó ra
+print(manufacturer_table <- table(my_data$manufacturer))
+```
+
+```{r}
+# Trích xuất dữ liệu với số lượng mỗi quan sát theo tên nhiều hơn 10
+my_data_filtered <- my_data[my_data$manufacturer %in% names( manufacturer_table [ manufacturer_table > 10]), ]
+# Kiểm tra lại thống kê các hãng
+table(my_data_filtered $manufacturer )
+```
+
+
+```{r}
+head(name_table <- table(my_data$name),10)
+```
+
+
+```{r}
+library(dplyr)
+new_data <- my_data %>%
+  mutate(
+    name = gsub('.*Radeon.*','Radeon', name),
+    name = gsub('.*Tesla.*','Tesla', name),
+    name = gsub('.*GeForce.*','GeForce', name),
+    name = gsub('.*Geforce.*','GeForce', name),
+    name = gsub('.*Mobility.*','Mobility', name),
+    name = gsub('.*Iris.*','Iris', name),
+    name = gsub('.*Quadro.*','Quadro', name),
+    name = gsub('.*FirePro.*','FirePro', name))
+print(name_table <- table(new_data$name))
+```
+
+
+```{r}
+name <- as.factor(new_data$name) #lấy biến độc lập name
+manufacturer <- as.factor(new_data$manufacturer) #lấy biến độc lập manufacturer
+memory_speed_value <- new_data$memory_speed_value #lấy biến phụ thuộc memory_speed_value
+
+library(nortest)
+av_residual <- rstandard(aov(memory_speed_value~name*manufacturer))# sử dụng rstandard để lấy sai số của memory_speed_value theo name và manufacturer
+shapiro.test(av_residual)# sử dụng shapiro.test() để kiểm tra thử sai số có tuân theo phân phối chuẩn hay không
+```
+
+
+```{r}
+#sử dụng phân đồ thị để kiểm tra phân phối chuẩn một cách trực quan
+qqnorm(av_residual)
+qqline(av_residual)
+```
+
+```{r}
+hist(av_residual)
+```
+
+
+```{r}
+library(car)
+leveneTest(memory_speed_value~name*manufacturer,data=new_data)
+```
+
+
+```{r}
+av2 <- aov(memory_speed_value~manufacturer*name,data = new_data)
+summary(av2)
+```
+
+```{r}
+#phân tích tương tác 2 yếu tố
+library(car)
+require(carData)
+library(phia)
+new_data$memory_speed_value <- as.numeric(new_data$memory_speed_value)
+mod.new_data <-lm(memory_speed_value~manufacturer*name, data = new_data)
+anova(mod.new_data)
+```
+
+
+```{r}
+#Vẽ biểu đồ phân phối chuẩn cho AMD
+AMD_data <- subset(my_data_filtered,my_data_filtered$manufacturer=="AMD")
+qqnorm(AMD_data$memory_speed_value)
+qqline(AMD_data$memory_speed_value)
+```
+
+```{r}
+#Kiểm tra phân phối chuẩn cho AMD bằng hàm shapiro.test
+shapiro.test(AMD_data$memory_speed_value)
+```
+
+
+```{r}
+#Vẽ biểu đồ phân phối chuẩn cho ATI
+ATI_data <- subset(my_data_filtered,my_data_filtered$manufacturer=="ATI")
+qqnorm(ATI_data$memory_speed_value)
+qqline(ATI_data$memory_speed_value)
+```
+
+
+```{r}
+#Kiểm tra phân phối chuẩn cho ATI bằng hàm shapiro.test
+shapiro.test(ATI_data$memory_speed_value)
+```
+
+
+
+```{r}
+#Vẽ biểu đồ phân phối chuẩn cho Nvidia
+Nvidia_data <- subset(my_data_filtered,my_data_filtered$manufacturer=="Nvidia")
+qqnorm(Nvidia_data$memory_speed_value)
+qqline(Nvidia_data$memory_speed_value)
+```
+
+
+```{r}
+#Kiểm tra phân phối chuẩn cho Nvidia bằng hàm shapiro.test
+shapiro.test(Nvidia_data$memory_speed_value)
+```
+
+```{r}
+# sử hụng hàm leveneTest() để thực hiện kiểm tra điều kiện phương sai bằng nhau giữa các mẫu
+library("car") # input thư viện car để sử dụng hàm laveneTest)()
+leveneTest(memory_speed_value~as.factor(manufacturer),my_data_filtered)
+```
+
+
+```{r}
+# Lưu kết quả của mô hình ANOVA vào biến (để sử dụng lại cho sau này)
+anova_result <- aov (memory_speed_value ~ manufacturer, data = my_data_filtered)
+# Hiển thị kết quả chi tiết của mô hình ANOVA
+summary(anova_result)
+```
+
+
+```{r}
+# Dùng hàm TukeyHSD() để thực hiện so sánh bội giữa các nhóm
+TukeyHSD(anova_result)
+```
+
+```{r}
+# vẽ biểu đồ cho việc so sánh bội giữa các nhóm
+plot(TukeyHSD(anova_result))
+```
+
+
+```{r}
+# Trích các biến phụ thuộc và các biến độc lập
+samples1 <- my_data[,c("release_price","number_of_pixels", 
+"core_speed_value","memory_value", "memory_bandwidth_value",
+"memory_speed_value","manufacturer","max_power_value")]
+head(samples1,10) #In ra 10 dòng đầu của bộ data samples
+```
+
+
+```{r}
+# Trích các biến phụ thuộc và các biến độc lập
+samples2 <- my_data_filtered[,c("release_price", 
+"core_speed_value","memory_value", "memory_bandwidth_value",
+"memory_speed_value","manufacturer","max_power_value")]
+head(samples2,10) #In ra 10 dòng đầu của bộ data samples
+```
+
+
+```{r}
+ # Dấu . thể hiện các biến còn lại trong samples
+lm_model <- lm( release_price ~ release_price+number_of_pixels+core_speed_value+memory_value+memory_bandwidth_value+memory_speed_value+manufacturer+max_power_value, samples1 )
+summary(lm_model)
+```
+
+```{r}
+ # Dấu . thể hiện các biến còn lại trong samples
+lm_model2 <- lm( release_price ~ core_speed_value+memory_value+memory_bandwidth_value+memory_speed_value+manufacturer+max_power_value, samples2 )
+summary(lm_model2)
+```
+
+```{r}
+# thực hiện so sánh hai mô hình
+anova(lm_model2,lm_model)
+```
+
+
+```{r}
+#Tìm khoảng ước lượng cho các hệ số
+confint(lm_model2 , level = 0.95 )
+```
+
+
+```{r}
+par ( mfrow = c(2, 2))
+plot(lm_model2, pch=20)
+```
+
+
+```{r}
+# Khởi tạo các giá trị cần dự đoán cho các biến độc lập
+ core_speed_value <- c(870 , 935 , 1011 , 853)
+ memory_value <- c(16000 , 8190 , 2048 , 1024)
+ memory_bandwidth_value <- c(220 , 70, 110 , 150)
+ memory_speed_value <- c(1055 , 1024 , 1048 , 1100)
+ manufacturer <- c("AMD", "ATI", "Nvidia", "ATI")
+ max_power_value <- c(145, 124, 95, 191)
+ new <- data.frame(core_speed_value , memory_value , memory_bandwidth_value, memory_speed_value, manufacturer, max_power_value)
+ # Dự đoán giá trị Release Price tương ứng với giá trị các biến độc lập đã tạo
+ predict (lm_model2 , new , interval = "confidence")
+```
+
+
+
+
+
+
+
+
